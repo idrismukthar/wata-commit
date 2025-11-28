@@ -1,47 +1,29 @@
 import jsonfile from "jsonfile";
 import moment from "moment";
 import simpleGit from "simple-git";
-import random from "random";
 
 const path = "./data.json";
 
-const markCommit = (x, y) => {
-  const date = moment()
-    .subtract(1, "y")
-    .add(1, "d")
-    .add(x, "w")
-    .add(y, "d")
-    .format();
-
-  const data = {
-    date: date,
-  };
-
-  jsonfile.writeFile(path, data, () => {
-    simpleGit().add([path]).commit(date, { "--date": date }).push();
-  });
+// Function to commit a specific date
+const commitForDate = async (date) => {
+  const data = { date };
+  await jsonfile.writeFile(path, data);
+  await simpleGit().add([path]).commit(date, { "--date": date });
 };
 
-const makeCommits = (n) => {
-  if (n === 0) return simpleGit().push();
-  const x = random.int(0, 54);
-  const y = random.int(0, 6);
-  const date = moment()
-    .subtract(1, "y")
-    .add(1, "d")
-    .add(x, "w")
-    .add(y, "d")
-    .format();
+// Main function to commit for every day in the past year
+const commitWholeYear = async () => {
+  let currentDate = moment().subtract(1, "year").add(1, "day"); // start from 1 year ago
+  const today = moment();
 
-  const data = {
-    date: date,
-  };
-  console.log(date);
-  jsonfile.writeFile(path, data, () => {
-    simpleGit()
-      .add([path])
-      .commit(date, { "--date": date }, makeCommits.bind(this, --n));
-  });
+  while (currentDate.isBefore(today) || currentDate.isSame(today, "day")) {
+    const formattedDate = currentDate.format();
+    console.log("Committing for:", formattedDate);
+    await commitForDate(formattedDate);
+    currentDate.add(1, "day"); // move to the next day
+  }
+
+  await simpleGit().push(); // push all commits at the end
 };
 
-makeCommits(100);
+commitWholeYear();
